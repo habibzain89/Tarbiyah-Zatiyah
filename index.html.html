@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Monitoring Tarbiyah Zatiyah</title>
+<!-- Firebase -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-firestore-compat.min.js"></script>
+<style>
+:root{--green:#1a7a4a;--green-light:#2d9e63;--green-dark:#0f5232;--gold:#c9a227;--bg:#f4f7f4;--card:#fff;--text:#1a2e1a;--text-muted:#6b7c6b;--border:#d4e4d4;--danger:#c0392b;--warning:#e67e22;--success:#27ae60;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100dvh}
+#auth-screen{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:linear-gradient(160deg,#0f5232,#1a7a4a 50%,#2d9e63)}
+.auth-logo{text-align:center;margin-bottom:32px}
+.auth-logo .icon{font-size:56px;margin-bottom:8px;display:block}
+.auth-logo h1{color:#fff;font-size:22px;font-weight:700;line-height:1.3}
+.auth-logo p{color:rgba(255,255,255,.75);font-size:13px;margin-top:4px}
+.auth-card{background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.auth-card h2{font-size:18px;color:var(--green-dark);margin-bottom:20px;text-align:center}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:#fafafa;outline:none;transition:border-color .2s}
+.form-group input:focus,.form-group select:focus{border-color:var(--green);background:#fff}
+.btn{width:100%;padding:13px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+.btn-primary{background:var(--green);color:#fff}
+.btn-primary:hover{background:var(--green-dark)}
+.btn-secondary{background:var(--bg);color:var(--green);border:1.5px solid var(--green);margin-top:10px}
+.btn-gold{background:var(--gold);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.error-msg{color:var(--danger);font-size:13px;margin-top:8px;text-align:center}
+#app{display:none;flex-direction:column;min-height:100dvh}
+.topbar{background:linear-gradient(90deg,var(--green-dark),var(--green));color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.topbar-title{font-size:15px;font-weight:700;line-height:1.2}
+.topbar-subtitle{font-size:11px;opacity:.8}
+.topbar-right{display:flex;gap:8px;align-items:center}
+.role-badge{background:rgba(255,255,255,.2);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600}
+.btn-icon{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:14px}
+.tabs{background:#fff;display:flex;border-bottom:1px solid var(--border);overflow-x:auto;position:sticky;top:56px;z-index:99}
+.tab{padding:12px 18px;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;white-space:nowrap;border-bottom:2.5px solid transparent;transition:all .2s}
+.tab.active{color:var(--green);border-bottom-color:var(--green)}
+.content{flex:1;padding:16px;max-width:720px;margin:0 auto;width:100%}
+.card{background:var(--card);border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid var(--border)}
+.card-title{font-size:14px;font-weight:700;color:var(--green-dark);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.amalan-row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.amalan-row:last-child{border-bottom:none}
+.amalan-info{flex:1;min-width:0}
+.amalan-name{font-size:14px;font-weight:600}
+.amalan-target{font-size:11px;color:var(--text-muted);margin-top:1px}
+.amalan-input-wrap{display:flex;align-items:center;gap:5px}
+.amalan-input{width:52px;padding:7px 4px;border:1.5px solid var(--border);border-radius:8px;font-size:16px;text-align:center;outline:none;font-weight:700;transition:border-color .2s}
+.amalan-input:focus{border-color:var(--green)}
+.amalan-pct{font-size:12px;font-weight:700;min-width:34px;text-align:right}
+.stepper-btn{width:34px;height:34px;border-radius:50%;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;padding:0;line-height:1}
+.stepper-minus{border:2px solid var(--border);background:#fff;color:var(--text-muted)}
+.stepper-minus:hover{border-color:var(--danger);color:var(--danger);background:#fdecea}
+.stepper-plus{border:2px solid var(--green);background:var(--green);color:#fff}
+.stepper-plus:hover{background:var(--green-dark)}
+.progress-bar{height:5px;background:var(--border);border-radius:99px;margin-top:4px;overflow:hidden}
+.progress-fill{height:100%;border-radius:99px;transition:width .4s ease}
+.pct-low{color:var(--danger)}.pct-mid{color:var(--warning)}.pct-high{color:var(--success)}
+.fill-low{background:var(--danger)}.fill-mid{background:var(--warning)}.fill-high{background:var(--success)}
+.week-nav{display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:12px;padding:10px 14px;margin-bottom:14px;border:1px solid var(--border)}
+.week-nav button{background:none;border:none;cursor:pointer;font-size:20px;color:var(--green);padding:4px 8px;border-radius:6px}
+.week-label{font-size:14px;font-weight:700;color:var(--text);text-align:center}
+.week-label small{display:block;font-size:11px;color:var(--text-muted);font-weight:400}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.stat-card{background:var(--card);border-radius:12px;padding:14px 10px;text-align:center;border:1px solid var(--border)}
+.stat-num{font-size:26px;font-weight:800;color:var(--green)}
+.stat-label{font-size:11px;color:var(--text-muted);margin-top:2px}
+.member-row{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);gap:12px}
+.member-row:last-child{border-bottom:none}
+.member-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--green-light),var(--green-dark));color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.member-info{flex:1;min-width:0}
+.member-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.member-score{font-size:18px;font-weight:800}
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:10px}
+.divider{height:1px;background:var(--border);margin:16px 0}
+.detail-table{width:100%;border-collapse:collapse;font-size:13px}
+.detail-table th{background:#f0f8f0;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted)}
+.detail-table td{padding:8px 10px;border-bottom:1px solid var(--border)}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#2d2d2d;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;transition:transform .3s ease;box-shadow:0 4px 20px rgba(0,0,0,.3);white-space:nowrap}
+#toast.show{transform:translateX(-50%) translateY(0)}
+.loading{text-align:center;padding:40px;color:var(--text-muted)}
+.spin{font-size:28px;animation:spin 1s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted)}
+.empty-state .icon{font-size:48px;margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-logo">
+    <span class="icon">🕌</span>
+    <h1>Monitoring<br>Tarbiyah Zatiyah</h1>
+    <p>Halaqah Pekanan</p>
+  </div>
+  <div class="auth-card" id="login-panel">
+    <h2>Masuk ke Akun</h2>
+    <div class="form-group">
+      <label>Pilih Nama</label>
+      <select id="login-member"><option value="">— Pilih nama —</option></select>
+    </div>
+    <div class="form-group">
+      <label>PIN (4 digit)</label>
+      <input type="password" id="login-pin" maxlength="4" inputmode="numeric" placeholder="••••">
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">Masuk</button>
+    <div id="login-error" class="error-msg"></div>
+    <div class="divider"></div>
+    <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:8px">Masuk sebagai Ustaz / Ketua</p>
+    <button class="btn btn-secondary" onclick="showAdminLogin()">Login Ustaz / Ketua</button>
+  </div>
+  <div class="auth-card" id="admin-panel" style="display:none">
+    <h2>🎓 Login Ustaz / Ketua</h2>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="admin-pass" placeholder="Masukkan password">
+    </div>
+    <button class="btn btn-gold" onclick="doAdminLogin()">Masuk sebagai Ustaz</button>
+    <div id="admin-error" class="error-msg"></div>
+    <div class="divider"></div>
+    <button class="btn btn-secondary" onclick="showMemberLogin()">← Kembali</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span style="font-size:22px">🕌</span>
+      <div>
+        <div class="topbar-title">Tarbiyah Zatiyah</div>
+        <div class="topbar-subtitle" id="topbar-user">–</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="role-badge" id="topbar-role">–</span>
+      <button class="btn-icon" onclick="doLogout()">⏏</button>
+    </div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="content" id="content"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+// FIREBASE CONFIG — GANTI DENGAN MILIK ANDA
+// ══════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCKikTId3FO8nCwNrcg_DntXfn2gYyzBb8",
+  authDomain: "tarbiyah-zatiyah.firebaseapp.com",
+  projectId: "tarbiyah-zatiyah",
+  storageBucket: "tarbiyah-zatiyah.firebasestorage.app",
+  messagingSenderId: "90071994877",
+  appId: "1:90071994877:web:df3e2cb1c102f12971c994",
+  measurementId: "G-ND5KTEHBD2"
+};
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const fdb = firebase.firestore();
+
+// ── Wrapper DB agar kode lama tetap jalan ──
+const db = {
+  collection: (col) => ({
+    doc: (docId) => ({
+      get:    ()     => fdb.collection(col).doc(docId).get(),
+      set:    (data) => fdb.collection(col).doc(docId).set(data),
+      delete: ()     => fdb.collection(col).doc(docId).delete(),
+    })
+  })
+};
+
+function docData(snap) {
+  if (!snap) return null;
+  if (typeof snap.data === 'function') return snap.data() || null;
+  return snap;
+}
+
+// ══════════════════════════════════════════
+// CONFIG APLIKASI
+// ══════════════════════════════════════════
+const AMALAN = [
+  { id:'sholat_jamaah', nama:'Sholat Jamaah',     icon:'🕌', target:25, satuan:'kali/pekan' },
+  { id:'sholat_dhuha',  nama:'Sholat Dhuha',      icon:'🌅', target:3,  satuan:'kali/pekan' },
+  { id:'tilawah',       nama:"Tilawah Al-Qur'an", icon:'📖', target:35, satuan:'halaman/pekan' },
+  { id:'qiyamullail',   nama:'Qiyamullail',        icon:'🌙', target:1,  satuan:'kali/pekan' },
+  { id:'puasa_sunnah',  nama:'Puasa Sunnah',       icon:'⭐', target:1,  satuan:'kali/pekan' },
+  { id:'olahraga',      nama:'Olahraga',           icon:'🏃', target:2,  satuan:'kali/pekan' },
+];
+const ADMIN_PASSWORD = 'ustaz2026';
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let currentUser = null;
+let currentWeekOffset = 0;
+let activeTab = 'input';
+let members = [];
+let sheetsUrl = '';
+let inputMode = 'harian';
+let selectedDate = new Date().toISOString().slice(0,10);
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+async function init() {
+  // Cek Firebase config sudah diisi
+  if (FIREBASE_CONFIG.apiKey === 'GANTI_API_KEY') {
+    document.getElementById('auth-screen').innerHTML = `
+      <div style="text-align:center;padding:32px;color:white;max-width:380px">
+        <div style="font-size:48px;margin-bottom:16px">⚙️</div>
+        <h2 style="font-size:20px;margin-bottom:12px">Firebase Belum Dikonfigurasi</h2>
+        <p style="opacity:.85;line-height:1.6;font-size:14px">
+          Buka file <b>index.html</b>, cari bagian <b>FIREBASE_CONFIG</b>,
+          dan ganti dengan konfigurasi Firebase project Anda.<br><br>
+          Lihat panduan di README.md yang disertakan.
+        </p>
+      </div>`;
+    return;
+  }
+
+  await loadMembers();
+  renderMemberSelect();
+
+  // Auto-restore sesi
+  try {
+    const saved = localStorage.getItem('tz_session');
+    if (saved) {
+      const sess = JSON.parse(saved);
+      if (sess?.id && sess?.role) {
+        if (sess.role === 'member') {
+          const ok = members.find(m => m.id === sess.id);
+          if (ok) { currentUser = { ...sess, name: ok.name }; enterApp(); return; }
+          localStorage.removeItem('tz_session');
+        } else { currentUser = sess; enterApp(); return; }
+      }
+    }
+  } catch(_) {}
+}
+
+async function loadMembers() {
+  try {
+    const snap = await db.collection('config').doc('members').get();
+    const data = docData(snap);
+    if (data?.list?.length) { members = data.list; sheetsUrl = data.sheetsUrl || ''; }
+    else members = defaultMembers();
+  } catch(e) { members = defaultMembers(); }
+}
+
+function defaultMembers() {
+  return [
+    { id:'m1', name:'Ahmad Fauzi',   pin:'1234' },
+    { id:'m2', name:'Budi Santoso',  pin:'1234' },
+    { id:'m3', name:'Cahyo Nugroho', pin:'1234' },
+  ];
+}
+
+function renderMemberSelect() {
+  const sel = document.getElementById('login-member');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Pilih nama —</option>' +
+    members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+}
+
+// ══════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════
+function showAdminLogin() { document.getElementById('login-panel').style.display='none'; document.getElementById('admin-panel').style.display=''; }
+function showMemberLogin() { document.getElementById('admin-panel').style.display='none'; document.getElementById('login-panel').style.display=''; }
+
+async function doLogin() {
+  const memberId = document.getElementById('login-member').value;
+  const pin = document.getElementById('login-pin').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  if (!memberId) { errEl.textContent='Pilih nama terlebih dahulu.'; return; }
+  if (!pin) { errEl.textContent='Masukkan PIN.'; return; }
+  const member = members.find(m => m.id === memberId);
+  if (!member || member.pin !== pin) { errEl.textContent='PIN salah. Hubungi Ustaz jika lupa PIN.'; return; }
+  currentUser = { id: member.id, name: member.name, role: 'member' };
+  localStorage.setItem('tz_session', JSON.stringify(currentUser));
+  enterApp();
+}
+
+async function doAdminLogin() {
+  const pass = document.getElementById('admin-pass').value;
+  const errEl = document.getElementById('admin-error');
+  errEl.textContent = '';
+  if (pass !== ADMIN_PASSWORD) { errEl.textContent='Password salah.'; return; }
+  currentUser = { id: 'admin', name: 'Ustaz / Ketua', role: 'admin' };
+  localStorage.setItem('tz_session', JSON.stringify(currentUser));
+  enterApp();
+}
+
+function doLogout() {
+  localStorage.removeItem('tz_session');
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('login-pin').value = '';
+  document.getElementById('admin-pass').value = '';
+  showMemberLogin();
+}
+
+function enterApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('topbar-user').textContent = currentUser.name;
+  document.getElementById('topbar-role').textContent = currentUser.role === 'admin' ? '👑 Ustaz' : '👤 Anggota';
+  if (currentUser.role === 'admin') { activeTab = 'dashboard'; renderTabs(['dashboard','anggota','settings']); }
+  else { activeTab = 'input'; renderTabs(['input','riwayat']); }
+  renderContent();
+}
+
+// ══════════════════════════════════════════
+// TABS & CONTENT
+// ══════════════════════════════════════════
+const TAB_LABELS = { input:'📝 Input', riwayat:'📊 Riwayat', dashboard:'📊 Dasbor', anggota:'👥 Anggota', settings:'⚙️ Pengaturan' };
+
+function renderTabs(tabs) {
+  document.getElementById('tabs').innerHTML = tabs.map(t =>
+    `<div class="tab ${t===activeTab?'active':''}" onclick="switchTab('${t}')">${TAB_LABELS[t]}</div>`
+  ).join('');
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  const isAdmin = currentUser.role === 'admin';
+  renderTabs(isAdmin ? ['dashboard','anggota','settings'] : ['input','riwayat']);
+  renderContent();
+}
+
+function renderContent() {
+  const el = document.getElementById('content');
+  el.innerHTML = '<div class="loading"><div class="spin">⏳</div></div>';
+  if (activeTab==='input')     renderInput(el);
+  if (activeTab==='riwayat')   renderRiwayat(el);
+  if (activeTab==='dashboard') renderDashboard(el);
+  if (activeTab==='anggota')   renderAnggota(el);
+  if (activeTab==='settings')  { renderSettings(el); setTimeout(renderGroupCode,100); }
+}
+
+// ══════════════════════════════════════════
+// HELPERS TANGGAL
+// ══════════════════════════════════════════
+function getMonday(dateStr) {
+  const d = new Date(dateStr); const day = d.getDay()||7;
+  d.setDate(d.getDate()-day+1); return d.toISOString().slice(0,10);
+}
+function getWeekKey(offset=0) {
+  const d = new Date(); d.setDate(d.getDate()+offset*7);
+  const day = d.getDay()||7; d.setDate(d.getDate()-day+1);
+  return d.toISOString().slice(0,10);
+}
+function weekLabel(offset=0) {
+  const key = getWeekKey(offset);
+  const start = new Date(key); const end = new Date(key); end.setDate(end.getDate()+6);
+  const fmt = d => d.toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+  const suffix = offset===0?' (Pekan Ini)':offset===-1?' (Pekan Lalu)':'';
+  return { label:`${fmt(start)} – ${fmt(end)}${suffix}`, key };
+}
+function formatTanggal(ds) { return new Date(ds).toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
+function formatTanggalShort(ds) { return new Date(ds).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}); }
+
+async function getWeeklyAggregate(memberId, weekKey) {
+  const monday = new Date(weekKey);
+  const totals = {}; AMALAN.forEach(a => totals[a.id]=0);
+  const promises = [];
+  for (let d=0;d<7;d++) {
+    const day = new Date(monday); day.setDate(monday.getDate()+d);
+    const dk = day.toISOString().slice(0,10);
+    promises.push(db.collection('daily').doc(memberId+'_'+dk).get()
+      .then(s=>{ const data=docData(s); if(data) AMALAN.forEach(a=>{ totals[a.id]+=(data[a.id]||0); }); }).catch(()=>{}));
+  }
+  await Promise.all(promises); return totals;
+}
+
+// ══════════════════════════════════════════
+// INPUT TAB
+// ══════════════════════════════════════════
+async function renderInput(el) {
+  el.innerHTML = `
+    <div style="display:flex;background:#fff;border-radius:12px;padding:4px;margin-bottom:12px;border:1px solid var(--border);gap:4px">
+      <button onclick="setInputMode('harian')"
+        style="flex:1;padding:10px;border-radius:9px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;
+        background:${inputMode==='harian'?'var(--green)':'transparent'};color:${inputMode==='harian'?'#fff':'var(--text-muted)'}">
+        📅 Input Harian</button>
+      <button onclick="setInputMode('pekanan')"
+        style="flex:1;padding:10px;border-radius:9px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;
+        background:${inputMode==='pekanan'?'var(--green)':'transparent'};color:${inputMode==='pekanan'?'#fff':'var(--text-muted)'}">
+        📊 Rekap Pekanan</button>
+    </div>
+    <div id="input-body"><div class="loading"><div class="spin">⏳</div></div></div>`;
+  if (inputMode==='harian') await renderInputHarian();
+  else await renderInputPekanan();
+}
+
+function setInputMode(mode) { inputMode=mode; renderContent(); }
+
+function amalanRows(existing, isHarian) {
+  return AMALAN.map(a => {
+    const val = existing?.[a.id]??'';
+    const pct = val!==''?Math.min(100,Math.round(Number(val)/a.target*100)):null;
+    const cls = pct===null?'':pct>=100?'pct-high':pct>=60?'pct-mid':'pct-low';
+    const fcls= pct===null?'':pct>=100?'fill-high':pct>=60?'fill-mid':'fill-low';
+    return `<div class="amalan-row">
+      <div class="amalan-info">
+        <div class="amalan-name">${a.icon} ${a.nama}</div>
+        <div class="amalan-target">Target/pekan: ${a.target} ${a.satuan}</div>
+        ${pct!==null?`<div class="progress-bar"><div class="progress-fill ${fcls}" style="width:${pct}%"></div></div>`:''}
+      </div>
+      <div class="amalan-input-wrap">
+        <button class="stepper-btn stepper-minus" onclick="stepVal('${a.id}',${a.target},-1)">−</button>
+        <input class="amalan-input" type="number" min="0" id="inp_${a.id}" value="${val}" placeholder="0" oninput="updatePct('${a.id}',${a.target})">
+        <button class="stepper-btn stepper-plus" onclick="stepVal('${a.id}',${a.target},1)">+</button>
+        <span class="amalan-pct ${cls}" id="pct_${a.id}">${pct!==null?pct+'%':'–'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function renderInputHarian() {
+  const body = document.getElementById('input-body'); if(!body)return;
+  let existing=null;
+  try { const s=await db.collection('daily').doc(currentUser.id+'_'+selectedDate).get(); existing=docData(s); } catch(_){}
+  const isEdit=!!existing; const today=new Date().toISOString().slice(0,10);
+  body.innerHTML=`
+    <div class="card" style="padding:14px 16px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase">📅 Tanggal</label>
+        <input type="date" id="daily-date" value="${selectedDate}" max="${today}" onchange="onDateChange(this.value)"
+          style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none;flex:1">
+        <button onclick="onDateChange('${today}')"
+          style="padding:8px 14px;border-radius:8px;border:1.5px solid var(--green);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;
+          background:${selectedDate===today?'var(--green)':'#fff'};color:${selectedDate===today?'#fff':'var(--green)'}">Hari Ini</button>
+      </div>
+      <div style="margin-top:8px;font-size:13px;color:var(--text-muted)">${formatTanggal(selectedDate)}</div>
+      <div style="margin-top:6px;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:600;
+        background:${isEdit?'#e8f5e9':'#e3f2fd'};color:${isEdit?'#1b5e20':'#0d47a1'}">
+        ${isEdit?'✏️ Data sudah ada — kamu bisa mengedit dan memperbarui':'✨ Belum ada data untuk tanggal ini — isi entri baru'}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📝 ${isEdit?'Edit Capaian – '+formatTanggalShort(selectedDate):'Capaian Hari Ini'}</div>
+      ${amalanRows(existing,true)}
+      <div id="weekly-summary-harian" style="margin-top:12px;padding:10px 12px;background:#f0f8f0;border-radius:8px;font-size:12px;color:var(--green-dark)">⏳ Menghitung akumulasi pekan ini...</div>
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" style="flex:1" onclick="saveDailyInput('${selectedDate}','${isEdit}')">
+          ${isEdit?'💾 Perbarui Data '+formatTanggalShort(selectedDate):'💾 Simpan Capaian Harian'}</button>
+        ${isEdit?`<button style="padding:12px 16px;border-radius:10px;border:1.5px solid var(--danger);background:#fff;color:var(--danger);font-weight:600;cursor:pointer;font-size:14px" onclick="deleteDailyInput('${selectedDate}')">🗑 Hapus</button>`:''}
+      </div>
+    </div>`;
+  loadWeeklySummaryHarian();
+}
+
+async function loadWeeklySummaryHarian() {
+  const el=document.getElementById('weekly-summary-harian'); if(!el)return;
+  const weekKey=getMonday(selectedDate);
+  const totals=await getWeeklyAggregate(currentUser.id,weekKey);
+  let weeklyDirect=null;
+  try{const ws=await db.collection('records').doc(currentUser.id+'_'+weekKey).get();weeklyDirect=docData(ws);}catch(_){}
+  const wk=weekLabel(0);
+  const parts=AMALAN.map(a=>`<span style="margin-right:6px">${a.icon} <b>${Math.max(totals[a.id]||0,weeklyDirect?.[a.id]||0)}</b>/${a.target}</span>`).join('');
+  el.innerHTML=`<b>📊 Akumulasi ${wk.label}:</b><br><div style="margin-top:4px;line-height:1.8">${parts}</div>`;
+}
+
+function onDateChange(val) { selectedDate=val; renderContent(); }
+
+async function renderInputPekanan() {
+  const body=document.getElementById('input-body'); if(!body)return;
+  const wk=weekLabel(currentWeekOffset);
+  let existingDirect=null;
+  try{const s=await db.collection('records').doc(currentUser.id+'_'+wk.key).get();existingDirect=docData(s);}catch(_){}
+  const dailyTotals=await getWeeklyAggregate(currentUser.id,wk.key);
+  const hasDailyData=AMALAN.some(a=>(dailyTotals[a.id]||0)>0);
+  // merged display values
+  const merged={};
+  AMALAN.forEach(a=>{
+    const dv=dailyTotals[a.id]||0; const ev=existingDirect?.[a.id]??null;
+    merged[a.id]=ev!==null?Math.max(ev,dv):(dv||'');
+  });
+  body.innerHTML=`
+    <div class="week-nav">
+      <button onclick="changeWeek(-1)">‹</button>
+      <div class="week-label">${wk.label}<small>${wk.key}</small></div>
+      <button onclick="changeWeek(1)" ${currentWeekOffset>=0?'disabled style="opacity:.3"':''}>›</button>
+    </div>
+    ${hasDailyData?`<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:#5d4037"><b>ℹ️ Sudah ada log harian.</b> Angka sudah terisi dari akumulasi harian. Sesuaikan jika ada yang kurang.</div>`:''}
+    <div class="card">
+      <div class="card-title">📊 ${existingDirect?'Edit Rekap – ':'Input Rekap – '}${wk.label}</div>
+      ${amalanRows(merged,false)}
+      <div style="margin-top:14px">
+        <button class="btn btn-primary" onclick="saveWeeklyDirect('${wk.key}')">
+          ${existingDirect?'💾 Perbarui Rekap':'💾 Simpan Rekap Pekanan'}</button>
+      </div>
+    </div>`;
+}
+
+function changeWeek(dir) { const n=currentWeekOffset+dir; if(n>0)return; currentWeekOffset=n; renderContent(); }
+
+function updatePct(id,target) {
+  const val=parseFloat(document.getElementById('inp_'+id).value)||0;
+  const pct=Math.min(100,Math.round(val/target*100));
+  const el=document.getElementById('pct_'+id);
+  el.textContent=pct+'%'; el.className='amalan-pct '+(pct>=100?'pct-high':pct>=60?'pct-mid':'pct-low');
+}
+function stepVal(id,target,delta) {
+  const inp=document.getElementById('inp_'+id); if(!inp)return;
+  inp.value=Math.max(0,(parseFloat(inp.value)||0)+delta); updatePct(id,target);
+}
+
+async function saveDailyInput(dateStr,isEditStr) {
+  const btn=document.querySelector('[onclick^="saveDailyInput"]');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Menyimpan...';}
+  const dailyData={savedAt:new Date().toISOString(),memberName:currentUser.name,date:dateStr,weekKey:getMonday(dateStr),type:'daily'};
+  AMALAN.forEach(a=>{dailyData[a.id]=parseFloat(document.getElementById('inp_'+a.id)?.value)||0;});
+  try {
+    await db.collection('daily').doc(currentUser.id+'_'+dateStr).set(dailyData);
+    await rebuildWeeklyRecord(currentUser.id,getMonday(dateStr));
+    showToast(isEditStr==='true'?'✅ Data berhasil diperbarui!':'✅ Capaian harian tersimpan!');
+    renderContent();
+  } catch(e) { showToast('❌ Gagal: '+(e?.message||'')); if(btn){btn.disabled=false;} }
+}
+
+async function deleteDailyInput(dateStr) {
+  showModal('🗑 Hapus Data Harian',`Hapus capaian ${formatTanggalShort(dateStr)}?`,'Hapus','var(--danger)',async()=>{
+    try{
+      await db.collection('daily').doc(currentUser.id+'_'+dateStr).delete();
+      await rebuildWeeklyRecord(currentUser.id,getMonday(dateStr));
+      showToast('🗑 Data harian dihapus'); selectedDate=new Date().toISOString().slice(0,10); renderContent();
+    }catch(e){showToast('❌ Gagal hapus');}
+  });
+}
+
+async function saveWeeklyDirect(weekKey) {
+  const btn=document.querySelector('[onclick^="saveWeeklyDirect"]');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Menyimpan...';}
+  const formVals={}; AMALAN.forEach(a=>{formVals[a.id]=parseFloat(document.getElementById('inp_'+a.id)?.value)||0;});
+  const dailyTotals=await getWeeklyAggregate(currentUser.id,weekKey);
+  const merged={}; AMALAN.forEach(a=>{merged[a.id]=Math.max(formVals[a.id],dailyTotals[a.id]||0);});
+  let totalPct=0; AMALAN.forEach(a=>{totalPct+=Math.min(100,merged[a.id]/a.target*100);});
+  const data={...merged,overallPct:Math.round(totalPct/AMALAN.length),savedAt:new Date().toISOString(),memberName:currentUser.name,source:'direct'};
+  try{
+    await db.collection('records').doc(currentUser.id+'_'+weekKey).set(data);
+    showToast('✅ Rekap pekanan tersimpan!');
+    if(sheetsUrl)pushToSheets(weekKey,data);
+    renderContent();
+  }catch(e){showToast('❌ Gagal: '+(e?.message||''));if(btn){btn.disabled=false;}}
+}
+
+async function rebuildWeeklyRecord(memberId,weekKey) {
+  const totals=await getWeeklyAggregate(memberId,weekKey);
+  let existingDirect=null;
+  try{const s=await db.collection('records').doc(memberId+'_'+weekKey).get();existingDirect=docData(s);}catch(_){}
+  const merged={}; AMALAN.forEach(a=>{merged[a.id]=Math.max(totals[a.id]||0,existingDirect?.[a.id]||0);});
+  let totalPct=0; AMALAN.forEach(a=>{totalPct+=Math.min(100,merged[a.id]/a.target*100);});
+  const data={...merged,overallPct:Math.round(totalPct/AMALAN.length),savedAt:new Date().toISOString(),
+    memberName:members.find(m=>m.id===memberId)?.name||currentUser.name,source:'daily'};
+  await db.collection('records').doc(memberId+'_'+weekKey).set(data);
+  if(sheetsUrl&&memberId===currentUser.id)pushToSheets(weekKey,data);
+}
+
+// ══════════════════════════════════════════
+// RIWAYAT
+// ══════════════════════════════════════════
+async function renderRiwayat(el) {
+  const weeks=[]; for(let i=0;i>=-7;i--)weeks.push(weekLabel(i));
+  el.innerHTML=`<div class="card"><div class="card-title">📊 Riwayat 8 Pekan Terakhir</div><div id="riwayat-rows"><div class="loading"><div class="spin">⏳</div></div></div></div>`;
+  const fetched=await Promise.all(weeks.map(async wk=>{
+    try{const s=await db.collection('records').doc(currentUser.id+'_'+wk.key).get();return{wk,doc:docData(s)};}
+    catch(_){return{wk,doc:null};}
+  }));
+  document.getElementById('riwayat-rows').innerHTML=fetched.map(({wk,doc})=>{
+    if(!doc)return`<div class="amalan-row"><div class="amalan-info"><div class="amalan-name" style="color:var(--text-muted)">${wk.label}</div></div><span style="font-size:12px;color:var(--text-muted)">Belum diisi</span></div>`;
+    const pct=doc.overallPct??0; const cls=pct>=80?'pct-high':pct>=50?'pct-mid':'pct-low';
+    return`<div class="amalan-row" style="cursor:pointer" onclick="toggleDetail('det_${wk.key}')">
+      <div class="amalan-info"><div class="amalan-name">${wk.label}</div>
+      <div class="progress-bar"><div class="progress-fill ${pct>=80?'fill-high':pct>=50?'fill-mid':'fill-low'}" style="width:${pct}%"></div></div></div>
+      <span class="amalan-pct ${cls}" style="font-size:16px">${pct}%</span></div>
+      <div id="det_${wk.key}" style="display:none;padding:8px 0 4px">
+        <table class="detail-table">${AMALAN.map(a=>{const v=doc[a.id]??0;const p=Math.min(100,Math.round(v/a.target*100));
+          return`<tr><td>${a.icon} ${a.nama}</td><td style="text-align:center">${v}/${a.target}</td>
+          <td class="${p>=100?'pct-high':p>=60?'pct-mid':'pct-low'}" style="text-align:right;font-weight:700">${p}%</td></tr>`;}).join('')}
+        </table></div>`;
+  }).join('') || '<div class="empty-state"><div class="icon">📭</div><p>Belum ada data</p></div>';
+}
+function toggleDetail(id){const el=document.getElementById(id);el.style.display=el.style.display==='none'?'':'none';}
+
+// ══════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════
+async function renderDashboard(el) {
+  const wk=weekLabel(currentWeekOffset);
+  el.innerHTML=`<div class="week-nav"><button onclick="changeWeek(-1)">‹</button><div class="week-label">${wk.label}<small>${wk.key}</small></div><button onclick="changeWeek(1)" ${currentWeekOffset>=0?'disabled style="opacity:.3"':''}>›</button></div><div id="dash-content"><div class="loading"><div class="spin">⏳</div></div></div>`;
+  const results=await Promise.all(members.map(async m=>{
+    try{const s=await db.collection('records').doc(m.id+'_'+wk.key).get();return{member:m,doc:docData(s)};}
+    catch(_){return{member:m,doc:null};}
+  }));
+  const filled=results.filter(r=>r.doc).length;
+  const avgPct=filled>0?Math.round(results.filter(r=>r.doc).reduce((s,r)=>s+(r.doc.overallPct||0),0)/filled):0;
+  const amalanAvg=AMALAN.map(a=>{
+    const vals=results.filter(r=>r.doc).map(r=>r.doc[a.id]||0);
+    const avg=vals.length?vals.reduce((s,v)=>s+v,0)/vals.length:0;
+    return{...a,avg:avg.toFixed(1),pct:Math.min(100,Math.round(avg/a.target*100))};
+  });
+  document.getElementById('dash-content').innerHTML=`
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-num">${members.length}</div><div class="stat-label">Anggota</div></div>
+      <div class="stat-card"><div class="stat-num">${filled}</div><div class="stat-label">Sudah Isi</div></div>
+      <div class="stat-card"><div class="stat-num ${avgPct>=80?'':'pct-mid'}">${avgPct}%</div><div class="stat-label">Rata-rata</div></div>
+    </div>
+    <div class="card"><div class="card-title">👥 Capaian Per Anggota</div>
+      ${results.sort((a,b)=>(b.doc?.overallPct||0)-(a.doc?.overallPct||0)).map(({member,doc})=>{
+        if(!doc)return`<div class="member-row"><div class="member-avatar">${member.name[0]}</div><div class="member-info"><div class="member-name">${member.name}</div><div style="font-size:11px;color:var(--danger)">Belum mengisi</div></div><span>⚪</span></div>`;
+        const pct=doc.overallPct||0; const cls=pct>=80?'pct-high':pct>=50?'pct-mid':'pct-low';
+        return`<div class="member-row" style="cursor:pointer" onclick="toggleDetail('dd_${member.id}')">
+          <div class="member-avatar">${member.name[0]}</div>
+          <div class="member-info"><div class="member-name">${member.name}</div>
+          <div class="progress-bar"><div class="progress-fill ${pct>=80?'fill-high':pct>=50?'fill-mid':'fill-low'}" style="width:${pct}%"></div></div></div>
+          <span class="member-score ${cls}">${pct}%</span></div>
+          <div id="dd_${member.id}" style="display:none;padding:4px 0 8px 50px">
+            ${AMALAN.map(a=>{const v=doc[a.id]||0;const p=Math.min(100,Math.round(v/a.target*100));
+              return`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0">
+              <span>${a.icon} ${a.nama}</span><span class="${p>=100?'pct-high':p>=60?'pct-mid':'pct-low'}" style="font-weight:700">${v}/${a.target} (${p}%)</span></div>`;}).join('')}
+          </div>`;
+      }).join('')}
+    </div>
+    <div class="card"><div class="card-title">📈 Rata-rata Amalan Jamaah</div>
+      ${amalanAvg.map(a=>`<div class="amalan-row">
+        <div class="amalan-info"><div class="amalan-name">${a.icon} ${a.nama}</div>
+        <div class="amalan-target">Rata-rata: ${a.avg}/${a.target}</div>
+        <div class="progress-bar"><div class="progress-fill ${a.pct>=100?'fill-high':a.pct>=60?'fill-mid':'fill-low'}" style="width:${a.pct}%"></div></div></div>
+        <span class="amalan-pct ${a.pct>=100?'pct-high':a.pct>=60?'pct-mid':'pct-low'}">${a.pct}%</span></div>`).join('')}
+    </div>
+    <button class="btn btn-gold" onclick="exportToSheets('${wk.key}')">📤 Export ke Google Sheets</button>`;
+}
+
+// ══════════════════════════════════════════
+// ANGGOTA TAB
+// ══════════════════════════════════════════
+async function renderAnggota(el) {
+  el.innerHTML=`<div class="card"><div class="card-title">👥 Daftar Anggota Halaqah</div>
+    ${members.map(m=>`<div class="amalan-row" id="row_${m.id}">
+      <div class="member-avatar" style="margin-right:12px;flex-shrink:0">${m.name[0].toUpperCase()}</div>
+      <div class="amalan-info" style="min-width:0">
+        <div id="view_${m.id}"><div class="amalan-name">${m.name}</div><div class="amalan-target">PIN: ${'•'.repeat(m.pin.length)}</div></div>
+        <div id="edit_${m.id}" style="display:none">
+          <input id="editname_${m.id}" type="text" value="${m.name}" style="width:100%;padding:6px 8px;border:1.5px solid var(--green);border-radius:7px;font-size:14px;margin-bottom:4px">
+          <input id="editpin_${m.id}" type="number" value="${m.pin}" maxlength="4" inputmode="numeric" placeholder="PIN (4 angka)" style="width:100px;padding:6px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:14px">
+        </div>
+      </div>
+      <div id="btns_${m.id}" style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn-icon" style="background:#e8f5e9;color:var(--green);border:1px solid #a5d6a7;font-size:13px" onclick="startEdit('${m.id}')">✏️ Edit</button>
+        <button class="btn-icon" style="background:#fdecea;color:var(--danger);border:1px solid #f5c6cb;font-size:13px" onclick="removeMember('${m.id}')">🗑</button>
+      </div>
+      <div id="savbtns_${m.id}" style="display:none;gap:6px;flex-shrink:0">
+        <button class="btn-icon" style="background:var(--green);color:#fff;border:none;font-size:13px;padding:6px 12px" onclick="saveEdit('${m.id}')">💾 Simpan</button>
+        <button class="btn-icon" style="background:var(--bg);color:var(--text-muted);border:1px solid var(--border);font-size:13px" onclick="cancelEdit('${m.id}')">✕</button>
+      </div>
+    </div>`).join('')}
+    <div class="divider"></div>
+    <div class="section-label">Tambah Anggota Baru</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1;min-width:140px">
+        <label style="font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">NAMA</label>
+        <input type="text" id="new-name" placeholder="Nama lengkap anggota" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none">
+      </div>
+      <div style="width:100px">
+        <label style="font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">PIN (4 angka)</label>
+        <input type="number" id="new-pin" placeholder="1234" inputmode="numeric" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none;text-align:center">
+      </div>
+      <button class="btn btn-primary" style="width:auto;padding:10px 20px;white-space:nowrap" onclick="addMember()">+ Tambah</button>
+    </div>
+  </div>`;
+}
+
+function startEdit(id){document.getElementById('view_'+id).style.display='none';document.getElementById('edit_'+id).style.display='';document.getElementById('btns_'+id).style.display='none';document.getElementById('savbtns_'+id).style.display='flex';document.getElementById('editname_'+id).focus();}
+function cancelEdit(id){document.getElementById('view_'+id).style.display='';document.getElementById('edit_'+id).style.display='none';document.getElementById('btns_'+id).style.display='flex';document.getElementById('savbtns_'+id).style.display='none';}
+
+async function saveEdit(id) {
+  const name=document.getElementById('editname_'+id).value.trim();
+  const pin=document.getElementById('editpin_'+id).value.trim();
+  if(!name){showToast('⚠️ Nama tidak boleh kosong');return;}
+  if(!/^\d{4}$/.test(pin)){showToast('⚠️ PIN harus 4 angka');return;}
+  members=members.map(m=>m.id===id?{...m,name,pin}:m);
+  const ok=await saveMembers(); if(ok){showToast('✅ Data anggota disimpan!');renderContent();}
+}
+async function addMember() {
+  const name=document.getElementById('new-name').value.trim();
+  const pin=document.getElementById('new-pin').value.trim();
+  if(!name){showToast('⚠️ Isi nama anggota');return;}
+  if(!/^\d{4}$/.test(pin)){showToast('⚠️ PIN harus 4 angka');return;}
+  members.push({id:'m'+Date.now(),name,pin});
+  const ok=await saveMembers(); if(ok){showToast('✅ Anggota ditambahkan');renderContent();}
+}
+async function removeMember(id) {
+  showModal('🗑 Hapus Anggota','Yakin ingin menghapus anggota ini?','Hapus','var(--danger)',async()=>{
+    members=members.filter(m=>m.id!==id);
+    const ok=await saveMembers(); if(ok){showToast('🗑 Anggota dihapus');renderContent();}
+  });
+}
+async function saveMembers() {
+  try{await db.collection('config').doc('members').set({list:members,sheetsUrl});renderMemberSelect();return true;}
+  catch(e){showToast('❌ Gagal menyimpan: '+(e?.message||e?.code||''));return false;}
+}
+
+// ══════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════
+async function renderSettings(el) {
+  el.innerHTML=`
+    <div class="card">
+      <div class="card-title">📊 Integrasi Google Sheets</div>
+      <label class="section-label">URL Google Apps Script Web App</label>
+      <input type="url" id="sheets-url-input" placeholder="https://script.google.com/macros/s/..." value="${sheetsUrl}"
+        style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;margin-bottom:10px">
+      <button class="btn btn-primary" onclick="saveSheetsUrl()">💾 Simpan URL</button>
+    </div>
+    <div class="card">
+      <div class="card-title">⚙️ Pengaturan Umum</div>
+      <div class="amalan-row" style="justify-content:space-between">
+        <div><div class="amalan-name">Password Ustaz</div><div class="amalan-target">Default: ustaz2026 (ubah di kode index.html)</div></div>
+      </div>
+    </div>`;
+}
+
+async function saveSheetsUrl() {
+  sheetsUrl=document.getElementById('sheets-url-input').value.trim();
+  const ok=await saveMembers(); if(ok)showToast('✅ URL Sheets disimpan');
+}
+
+function renderGroupCode(){} // tidak dipakai di versi standalone
+
+// ══════════════════════════════════════════
+// SHEETS EXPORT
+// ══════════════════════════════════════════
+async function pushToSheets(weekKey,data) {
+  if(!sheetsUrl)return;
+  const row={weekKey,memberId:currentUser.id,memberName:currentUser.name,savedAt:data.savedAt,overallPct:data.overallPct,...Object.fromEntries(AMALAN.map(a=>[a.id,data[a.id]||0]))};
+  try{await fetch(sheetsUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(row)});}catch(_){}
+}
+async function exportToSheets(weekKey) {
+  if(!sheetsUrl){showToast('⚠️ URL Sheets belum dikonfigurasi');return;}
+  showToast('📤 Mengirim data ke Sheets...');
+  const results=await Promise.all(members.map(async m=>{
+    try{const s=await db.collection('records').doc(m.id+'_'+weekKey).get();return{member:m,doc:docData(s)};}
+    catch(_){return{member:m,doc:null};}
+  }));
+  let sent=0;
+  for(const {member,doc} of results){
+    if(!doc)continue;
+    const row={weekKey,memberId:member.id,memberName:member.name,savedAt:doc.savedAt,overallPct:doc.overallPct,...Object.fromEntries(AMALAN.map(a=>[a.id,doc[a.id]||0]))};
+    try{await fetch(sheetsUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(row)});sent++;}catch(_){}
+  }
+  showToast(`✅ ${sent} data dikirim ke Sheets!`);
+}
+
+// ══════════════════════════════════════════
+// MODAL & TOAST
+// ══════════════════════════════════════════
+function showModal(title,body,confirmText,confirmColor,onConfirm) {
+  const existing=document.getElementById('app-modal'); if(existing)existing.remove();
+  const el=document.createElement('div'); el.id='app-modal';
+  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
+  el.innerHTML=`<div style="background:#fff;border-radius:16px;padding:24px;max-width:320px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <h3 style="font-size:17px;margin-bottom:10px">${title}</h3>
+    <p style="font-size:14px;color:var(--text-muted);margin-bottom:20px;line-height:1.5">${body}</p>
+    <div style="display:flex;gap:10px">
+      <button onclick="document.getElementById('app-modal').remove()" style="flex:1;padding:11px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);font-size:14px;font-weight:600;cursor:pointer">Batal</button>
+      <button id="modal-confirm-btn" style="flex:1;padding:11px;border-radius:9px;border:none;background:${confirmColor};color:#fff;font-size:14px;font-weight:600;cursor:pointer">${confirmText}</button>
+    </div></div>`;
+  document.body.appendChild(el);
+  document.getElementById('modal-confirm-btn').onclick=()=>{el.remove();onConfirm();};
+}
+
+let toastTimer;
+function showToast(msg) {
+  const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+// START
+init();
+</script>
+</body>
+</html>
